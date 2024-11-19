@@ -1,10 +1,12 @@
 import streamlit as st
-import pandas as pd
-import sqlite3
+from database_manager import initialize_database
 
+# Inicializar la base de datos
+initialize_database()
+
+# Interfaz de usuario simple para verificar la conexión
 st.title("Prueba de Streamlit")
 st.write("¡Todo está funcionando correctamente!")
 
-# Prueba de conexión SQLite
-conexion = sqlite3.connect(":memory:")
-st.write("SQLite está funcionando. Conexión en memoria creada.")
+# Puedes agregar funcionalidades adicionales aquí...
+
