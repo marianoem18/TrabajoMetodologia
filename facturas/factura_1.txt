@@ -1,0 +1,5 @@
+Factura ID: 1
+Productos vendidos:
+- Tanque 50LTS (Cantidad: 2) - Subtotal: $360000.00
+
+Total de la venta: $360000.00
