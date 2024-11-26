@@ -1,0 +1,2 @@
+id_venta,fecha,productos,total,metodo_pago,factura
+1,2024-11-24,[12],360000.0,Efectivo,facturas\factura_1.txt
