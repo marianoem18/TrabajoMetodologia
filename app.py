@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+from fpdf import FPDF  # Librería para generar PDF
 
 # Función para inicializar archivos CSV si no existen
 def initialize_csv(file_name, headers):
@@ -12,7 +13,7 @@ def initialize_csv(file_name, headers):
 initialize_csv("stock.csv", ["id_stock", "id_producto", "cantidad", "descripcion", "precio"])
 initialize_csv("productos.csv", ["id_producto", "descripcion", "precio", "id_proveedor"])
 initialize_csv("proveedores.csv", ["id_proveedor", "nombre", "direccion", "telefono", "email"])
-initialize_csv("compras.csv", ["id_compra", "id_proveedor", "fecha", "total"])
+initialize_csv("compras.csv", ["id_compra", "id_proveedor", "productos", "fecha", "total"])
 initialize_csv("ventas.csv", ["id_venta", "fecha", "productos", "total", "metodo_pago", "factura"])
 
 # Función para cargar datos desde un archivo CSV
@@ -27,24 +28,35 @@ def load_csv(file_name):
 def save_csv(df, file_name):
     df.to_csv(file_name, index=False)
 
-# Función para generar factura
-def generate_invoice(venta_id, productos, cantidades, total, stock_df):
+# Función para generar factura como PDF
+def generate_invoice_pdf(venta_id, productos, cantidades, total, stock_df):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Factura ID: {venta_id}", ln=True, align='C')
+    pdf.ln(10)
+    pdf.cell(200, 10, txt="Productos vendidos:", ln=True)
+    
+    for producto_id, cantidad in cantidades.items():
+        producto_info = stock_df[stock_df["id_producto"] == producto_id]
+        descripcion = producto_info["descripcion"].values[0]
+        precio = producto_info["precio"].values[0]
+        subtotal = cantidad * precio
+        pdf.cell(200, 10, txt=f"- {descripcion} (Cantidad: {cantidad}) - Subtotal: ${subtotal:.2f}", ln=True)
+    
+    iva = total * 0.27
+    total_con_iva = total + iva
+    pdf.ln(10)
+    pdf.cell(200, 10, txt=f"Subtotal: ${total:.2f}", ln=True)
+    pdf.cell(200, 10, txt=f"IVA (27%): ${iva:.2f}", ln=True)
+    pdf.cell(200, 10, txt=f"Total con IVA: ${total_con_iva:.2f}", ln=True)
+    
     factura_dir = "facturas"
     os.makedirs(factura_dir, exist_ok=True)
-    invoice_file = os.path.join(factura_dir, f"factura_{venta_id}.txt")
+    pdf_path = os.path.join(factura_dir, f"factura_{venta_id}.pdf")
+    pdf.output(pdf_path)
     
-    with open(invoice_file, "w") as f:
-        f.write(f"Factura ID: {venta_id}\n")
-        f.write("Productos vendidos:\n")
-        for producto_id, cantidad in cantidades.items():
-            producto_info = stock_df[stock_df["id_producto"] == producto_id]
-            descripcion = producto_info["descripcion"].values[0]
-            precio = producto_info["precio"].values[0]
-            subtotal = cantidad * precio
-            f.write(f"- {descripcion} (Cantidad: {cantidad}) - Subtotal: ${subtotal:.2f}\n")
-        f.write(f"\nTotal de la venta: ${total:.2f}\n")
-    
-    return invoice_file
+    return pdf_path
 
 # Interfaz principal
 def main():
@@ -99,9 +111,39 @@ def main():
     elif choice == "Compras a Proveedores":
         st.header("Compras a Proveedores")
         compras_df = load_csv("compras.csv")
-        if compras_df.empty:
-            st.info("No hay compras registradas.")
-        else:
+        proveedores_df = load_csv("proveedores.csv")
+        stock_df = load_csv("stock.csv")
+
+        if proveedores_df.empty:
+            st.warning("No hay proveedores registrados. Registra uno primero.")
+            return
+
+        with st.form("Registrar Compra"):
+            st.subheader("Registrar Compra")
+            id_proveedor = st.selectbox("Seleccionar Proveedor", proveedores_df["id_proveedor"])
+            productos_comprados = st.multiselect("Seleccionar Productos", stock_df["id_producto"].tolist())
+            cantidades = {
+                prod: st.number_input(f"Cantidad para {prod}", min_value=0, step=1)
+                for prod in productos_comprados
+            }
+            submit = st.form_submit_button("Registrar Compra")
+            if submit:
+                total = sum(
+                    cantidades[prod] * stock_df[stock_df["id_producto"] == prod]["precio"].values[0]
+                    for prod in productos_comprados
+                )
+                new_row = {
+                    "id_compra": len(compras_df) + 1,
+                    "id_proveedor": id_proveedor,
+                    "productos": str(productos_comprados),
+                    "fecha": pd.Timestamp.now().strftime("%Y-%m-%d"),
+                    "total": total,
+                }
+                compras_df = pd.concat([compras_df, pd.DataFrame([new_row])], ignore_index=True)
+                save_csv(compras_df, "compras.csv")
+                st.success("Compra registrada exitosamente.")
+
+        if not compras_df.empty:
             st.dataframe(compras_df)
 
     elif choice == "Nueva Venta":
@@ -130,7 +172,7 @@ def main():
                 for prod in productos_seleccionados
             )
             new_id_venta = int(ventas_df["id_venta"].max() + 1 if not ventas_df.empty else 1)
-            invoice_file = generate_invoice(new_id_venta, productos_seleccionados, cantidades, total, stock_df)
+            pdf_path = generate_invoice_pdf(new_id_venta, productos_seleccionados, cantidades, total, stock_df)
 
             nueva_venta = {
                 "id_venta": new_id_venta,
@@ -138,12 +180,12 @@ def main():
                 "productos": str(productos_seleccionados),
                 "total": total,
                 "metodo_pago": "Efectivo",
-                "factura": invoice_file,
+                "factura": pdf_path,
             }
             ventas_df = pd.concat([ventas_df, pd.DataFrame([nueva_venta])], ignore_index=True)
             save_csv(ventas_df, "ventas.csv")
             st.success(f"Venta registrada exitosamente. Total: ${total:.2f}")
-            st.info(f"Factura generada: {invoice_file}")
+            st.info(f"Factura generada: {pdf_path}")
 
     elif choice == "Ventas":
         st.header("Ventas")
@@ -154,13 +196,9 @@ def main():
         else:
             for _, row in ventas_df.iterrows():
                 st.write(f"ID Venta: {row['id_venta']}, Fecha: {row['fecha']}, Total: ${row['total']:.2f}")
-                factura_path = row["factura"]
-                if pd.notna(factura_path) and os.path.exists(factura_path):
-                    with open(factura_path, "r") as f:
-                        factura_content = f.read()
-                    st.text_area(f"Factura {row['id_venta']}", factura_content, height=200)
-                else:
-                    st.error(f"No se encontró la factura para la venta {row['id_venta']}.")
+                st.write(f"Productos: {row['productos']}")
+                st.write(f"Factura: {row['factura']}")
+                st.download_button("Descargar Factura", data=open(row['factura'], "rb"), file_name=os.path.basename(row['factura']))
 
 if __name__ == "__main__":
     main()
