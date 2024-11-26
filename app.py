@@ -197,8 +197,17 @@ def main():
             for _, row in ventas_df.iterrows():
                 st.write(f"ID Venta: {row['id_venta']}, Fecha: {row['fecha']}, Total: ${row['total']:.2f}")
                 st.write(f"Productos: {row['productos']}")
-                st.write(f"Factura: {row['factura']}")
-                st.download_button("Descargar Factura", data=open(row['factura'], "rb"), file_name=os.path.basename(row['factura']))
+
+                # Verificar si el archivo de la factura existe antes de intentar descargarlo
+                if os.path.exists(row['factura']):
+                    with open(row['factura'], "rb") as file:
+                        st.download_button(
+                            label="Descargar Factura",
+                            data=file,
+                            file_name=os.path.basename(row['factura'])
+                        )
+                else:
+                    st.warning(f"El archivo de factura {row['factura']} no existe. Verifica su generación.")
 
 if __name__ == "__main__":
     main()
