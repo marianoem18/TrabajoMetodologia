@@ -1,2 +1,28 @@
 id_stock,id_producto,cantidad,descripcion,precio
-3,12,20,Tanque 50LTS,180000.0
+1,1,50,Llave de paso,1500.0
+2,2,30,Canilla monocomando,4500.0
+3,3,100,Flexible para agua,900.0
+4,4,40,Adaptador de conexión,800.0
+5,5,25,Ducha teléfono,2500.0
+6,6,70,Caño PVC 1'',200.0
+7,7,60,Codo PVC 1'',150.0
+8,8,40,Válvula de cierre,3500.0
+9,9,80,Nipple de bronce,1800.0
+10,10,20,Inodoro estándar,25000.0
+11,11,15,Mochila para inodoro,10000.0
+12,12,10,Bidet estándar,20000.0
+13,13,50,Asiento de inodoro,3500.0
+14,14,100,Junta de goma,300.0
+15,15,50,Portarrollos de baño,1200.0
+16,16,30,Toallero de acero,2500.0
+17,17,40,Soporte para cortina,1800.0
+18,18,60,Jabonera de cerámica,800.0
+19,19,100,Silicona selladora,450.0
+20,20,80,Arandela de goma,200.0
+21,21,50,Válvula de descarga,5000.0
+22,22,10,Bomba de agua,45000.0
+23,23,40,Flotante de tanque,1200.0
+24,24,20,Canilla de cocina,4000.0
+25,25,30,Filtro de agua,6000.0
+26,26,15,Pileta de acero inoxidable,15000.0
+27,27,50,Sifón para desagüe,800.0
